@@ -1,0 +1,5 @@
+address: localhost:28015
+database: test
+username: ""
+password: ""
+cert_file: ""

@@ -1,0 +1,5 @@
+package: github.com/coccodrillo/rethinkdb-migrate
+import:
+- package: gopkg.in/dancannon/gorethink.v2
+- package: github.com/mitchellh/cli
+- package: github.com/go-yaml/yaml
