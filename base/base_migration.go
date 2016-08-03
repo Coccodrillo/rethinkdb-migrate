@@ -1,11 +1,9 @@
-package main
+package base
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"github.com/coccodrillo/rethinkdb-migrate/migrations"
 	r "gopkg.in/dancannon/gorethink.v2"
-	"io/ioutil"
+
 	"log"
 	"reflect"
 	"sort"
@@ -14,50 +12,35 @@ import (
 )
 
 type BaseMigration struct {
-	session *r.Session
-	limit   int
-	check   bool
-	strict  bool
+	session     *r.Session
+	Limit       int
+	Check       bool
+	Strict      bool
+	packageName string
 }
 
-func NewBaseMigration() *BaseMigration {
-	c := NewConfig()
-	b := &BaseMigration{strict: true}
-	var t *tls.Config
-	if c.CertFile != "" {
-		pem, err := ioutil.ReadFile(c.CertFile)
-		if err != nil {
-			log.Fatalf("Rethinkdb/SSL: %s", err)
-		}
-		t = &tls.Config{RootCAs: x509.NewCertPool()}
-		t.RootCAs.AppendCertsFromPEM(pem)
-	}
-	var err error
-	b.session, err = r.Connect(r.ConnectOpts{
-		Address:   c.Address,
-		Database:  c.Database,
-		Username:  c.Username,
-		Password:  c.Password,
-		TLSConfig: t,
-	})
-	if err != nil {
+func NewBaseMigration(session *r.Session, packageName string) *BaseMigration {
+	b := &BaseMigration{Strict: true}
+	b.session = session
+	b.packageName = packageName
+	if err := b.setUp(); err != nil {
 		log.Fatalf("error: %v", err)
 	}
 	return b
 }
 
-func (b *BaseMigration) SetUp() (err error) {
+func (b *BaseMigration) setUp() (err error) {
 	_, err = r.TableList().Do(func(result r.Term) r.Term {
-		return r.Branch(result.Contains("migrations"),
+		return r.Branch(result.Contains(b.packageName),
 			nil,
-			r.TableCreate("migrations"),
+			r.TableCreate(b.packageName),
 		)
 	}).Run(b.session)
 	return err
 }
 
 func (b *BaseMigration) WriteMigration(migrationId int, migrationName string) (err error) {
-	_, err = r.Table("migrations").Insert(map[string]interface{}{
+	_, err = r.Table(b.packageName).Insert(map[string]interface{}{
 		"id":         migrationId,
 		"name":       migrationName,
 		"created_at": r.Now(),
@@ -66,12 +49,12 @@ func (b *BaseMigration) WriteMigration(migrationId int, migrationName string) (e
 }
 
 func (b *BaseMigration) RemoveMigration(migrationId int) (err error) {
-	_, err = r.Table("migrations").Get(migrationId).Delete().Run(b.session)
+	_, err = r.Table(b.packageName).Get(migrationId).Delete().Run(b.session)
 	return err
 }
 
 func (b *BaseMigration) GetLastMigration() (lastId int) {
-	res, err := r.Table("migrations").OrderBy(r.Desc("id")).Limit(1).Run(b.session)
+	res, err := r.Table(b.packageName).OrderBy(r.Desc("id")).Limit(1).Run(b.session)
 	if err == nil {
 		var row map[string]interface{}
 		err := res.One(&row)
@@ -101,32 +84,32 @@ func (b *BaseMigration) Runner(up bool) int {
 	} else {
 		sort.Sort(sort.Reverse(sort.IntSlice(keys)))
 	}
-	if b.limit > len(keys) || b.limit == 0 {
-		b.limit = len(keys)
+	if b.Limit > len(keys) || b.Limit == 0 {
+		b.Limit = len(keys)
 	}
 	direction := "up"
 	if !up {
 		direction = "down"
 	}
-	if b.limit > 0 {
-		log.Printf("Migrating %d migrations %s", b.limit, direction)
+	if b.Limit > 0 {
+		log.Printf("Migrating %d migrations %s", b.Limit, direction)
 	} else {
 		log.Println("All migrations up to date")
 	}
-	for i := 0; i < b.limit; i++ {
+	for i := 0; i < b.Limit; i++ {
 		method := m[keys[i]]
 		log.Printf("Migrating %s", method.Name)
 		m := &migrations.Migration{}
 		term := method.Func.Interface().(func(*migrations.Migration, bool) r.Term)(m, up)
 		if term.String() != "" {
-			if b.check {
+			if b.Check {
 				log.Printf("Query to execute: %s", term.String())
 			} else {
 				res, err := term.Run(b.session)
 				defer res.Close()
 				if err != nil {
 					log.Printf("Error while appying migration: %v", err)
-					if b.strict {
+					if b.Strict {
 						log.Println("Aborting migrations")
 						return 1
 					}

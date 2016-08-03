@@ -4,8 +4,8 @@
 
 ### Prerequisites:
 
- - Glide, database migration tool. 
- 
+ - Glide, database migration tool.
+
     Install:
       - On Mac OS X you can install the latest release via [Homebrew](https://github.com/Homebrew/homebrew):
 
@@ -25,7 +25,29 @@
  ```
  $ go get github.com/Coccodrillo/rethinkdb-migrate
  ```
- 
+
+ or as a library
+
+ ```
+ $ go get github.com/Coccodrillo/rethinkdb-migrate/base
+ ```
+
+ where you need to pass Gorethink Session to
+
+```
+session, err = r.Connect(r.ConnectOpts{
+	Address:   c.Address,
+	Database:  c.Database,
+	Username:  c.Username,
+	Password:  c.Password,
+	TLSConfig: t,
+})
+if err != nil {
+	log.Fatalf("error: %v", err)
+}
+b := base.NewBaseMigration(session, "migrations")
+
+```
 ### Configuration
 Into a file config.yaml, pass connection details
 
@@ -51,20 +73,20 @@ At the moment, the queries are hardcoded to subpackage migrations. Write a metho
 	}
 	return term
 }
- ```  
+ ```
 
 ### Parameters
 
  -config=config.yml   Config file with connection (missing implementation)
- 
+
  -env="development"   Env (missing implementation)
- 
+
  -limit=1             Limit migrations to run
- 
+
  -strict=true         Abort migrations on first error
- 
+
  -check               Just list migrations to be applied
- 
+
 ### Commands
 
 Up - Migrates the database to the most recent version available [defaults to limit-0, runs all migrations]
@@ -76,11 +98,11 @@ Down - Migrates the database down to undo changes [defaults to limit-1, reverts 
 ```
  $ rethinkdb-migrate up -limit 1
  ```
- 
+
 ### Todo
 - [ ] Implementing missing configuration options
 - [ ] More configuration options
-- [ ] Usage as a library
+- [x] Usage as a library
 = [ ] Lexer for native queries
 - [ ] Status and Info commands
 - [ ] Better logging

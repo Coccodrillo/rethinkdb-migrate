@@ -2,11 +2,12 @@ package main
 
 import (
 	"flag"
+	"github.com/coccodrillo/rethinkdb-migrate/base"
 	"strings"
 )
 
 type Up struct {
-	*BaseMigration
+	*base.BaseMigration
 }
 
 func (u *Up) Synopsis() string {
@@ -31,9 +32,9 @@ func (u *Up) Run(args []string) int {
 	cmdFlags.Usage = func() {
 		ui.Output(u.Help())
 	}
-	cmdFlags.BoolVar(&u.strict, "strict", true, "Abort migrations on first error")
-	cmdFlags.IntVar(&u.limit, "limit", 0, "Limit migrations to run")
-	cmdFlags.BoolVar(&u.check, "check", false, "Dry run")
+	cmdFlags.BoolVar(&u.Strict, "strict", true, "Abort migrations on first error")
+	cmdFlags.IntVar(&u.Limit, "limit", 0, "Limit migrations to run")
+	cmdFlags.BoolVar(&u.Check, "check", false, "Dry run")
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
@@ -41,7 +42,7 @@ func (u *Up) Run(args []string) int {
 }
 
 type Down struct {
-	*BaseMigration
+	*base.BaseMigration
 }
 
 func (d *Down) Synopsis() string {
@@ -66,9 +67,9 @@ func (d *Down) Run(args []string) int {
 	cmdFlags.Usage = func() {
 		ui.Output(d.Help())
 	}
-	cmdFlags.BoolVar(&d.strict, "strict", true, "Abort migrations on first error")
-	cmdFlags.IntVar(&d.limit, "limit", 1, "Limit migrations to run")
-	cmdFlags.BoolVar(&d.check, "check", false, "Dry run")
+	cmdFlags.BoolVar(&d.Strict, "strict", true, "Abort migrations on first error")
+	cmdFlags.IntVar(&d.Limit, "limit", 1, "Limit migrations to run")
+	cmdFlags.BoolVar(&d.Check, "check", false, "Dry run")
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}

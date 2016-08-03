@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/coccodrillo/rethinkdb-migrate/base"
 	"log"
 	"os"
 
@@ -11,8 +12,11 @@ var ui cli.Ui
 
 func main() {
 	os.Exit(func() int {
-		b := NewBaseMigration()
-		b.SetUp()
+		s, err := GetSession(NewConfig())
+		if err != nil {
+			log.Fatalf("Error while connecting %v", err)
+		}
+		b := base.NewBaseMigration(s, "migrations")
 		ui = &cli.BasicUi{Writer: os.Stdout}
 
 		cli := &cli.CLI{
